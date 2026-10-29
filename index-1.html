@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="bn"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>টুর্নামেন্ট ম্যানেজার</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light dark;--bg:#f4f6f8;--card:#fff;--tx:#14181f;--mu:#667085;--bd:#e2e6ea;--ac:#16a34a;--act:#fff;--soft:#e8f6ee}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1217;--card:#171d25;--tx:#eef1f5;--mu:#98a2b3;--bd:#29313c;--ac:#22c55e;--act:#04210f;--soft:#12301e}}
+:root[data-theme="dark"]{--bg:#0e1217;--card:#171d25;--tx:#eef1f5;--mu:#98a2b3;--bd:#29313c;--ac:#22c55e;--act:#04210f;--soft:#12301e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,"Noto Sans Bengali","Hind Siliguri",sans-serif}
+#app{max-width:640px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:6px 0 12px}h2{font-size:16px;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+.mu{color:var(--mu);font-size:14px;margin:8px 0 0}
+.row{display:flex;gap:8px}
+input[type=text]{flex:1;min-width:0;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font:inherit}
+button{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:10px;padding:10px 14px;cursor:pointer}
+button.pri,button.on{background:var(--ac);color:var(--act);border-color:var(--ac);font-weight:600}
+button:disabled{opacity:.45}
+.big{width:100%;padding:14px;font-size:17px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{background:var(--soft);border-radius:99px;padding:6px 8px 6px 12px;font-size:15px}
+.chip b{margin-left:8px;cursor:pointer;color:var(--mu);padding:0 4px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:7px 5px;text-align:center;border-bottom:1px solid var(--bd);white-space:nowrap}
+th{color:var(--mu);font-weight:500}td.n{text-align:left}th.n{text-align:left}
+tr.first td{font-weight:700;color:var(--ac)}
+.rd{font-size:13px;color:var(--mu);margin:14px 0 6px;font-weight:600}
+.m{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.m:last-child{border:0}.m .a{text-align:right}.m .b{text-align:left}
+.m span.w{font-weight:700;color:var(--ac)}
+.sc{display:flex;align-items:center;gap:4px}
+.sc input{width:44px;padding:8px 2px;text-align:center;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.pen{grid-column:1/-1;display:flex;gap:8px;justify-content:center;align-items:center;font-size:13px;color:var(--mu)}
+.pen button{padding:5px 10px;font-size:13px}
+.bye{grid-column:1/-1;text-align:center;color:var(--mu);font-size:14px}
+.champ{background:var(--ac);color:var(--act);text-align:center;font-size:18px;font-weight:700;border-radius:14px;padding:14px;margin-bottom:12px}
+.rest{font-size:13px;color:var(--mu);margin-top:6px}
+</style></head><body><div id="app"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S={players:[],fmt:'league',started:false,league:[],ko:[]};
+try{const x=localStorage.getItem('tm1');if(x)S=JSON.parse(x)}catch(e){}
+function save(){try{localStorage.setItem('tm1',JSON.stringify(S))}catch(e){}}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function add(){const el=$('#nm'),v=el.value.trim();if(!v||S.players.some(p=>p.toLowerCase()===v.toLowerCase())){el.focus();return}S.players.push(v);R();$('#nm').focus()}
+function del(i){S.players.splice(i,1);R()}
+function setFmt(f){S.fmt=f;R()}
+function size(n){let s=2;while(s<n)s*=2;return s}
+function genLeague(p){let t=p.slice();if(t.length%2)t.push(null);const n=t.length,m=[];
+for(let r=0;r<n-1;r++){for(let i=0;i<n/2;i++){const a=t[i],b=t[n-1-i];if(a&&b)m.push({r:r+1,a,b,sa:'',sb:''})}t.splice(1,0,t.pop())}return m}
+function genKO(p){p=shuffle(p);const n=p.length,sz=size(n),rounds=[];const r0=[];
+for(let i=0;i<sz/2;i++){const j=sz-1-i;r0.push({a:p[i],b:j<n?p[j]:'BYE',sa:'',sb:'',pw:''})}
+rounds.push(r0);for(let c=sz/4;c>=1;c/=2){rounds.push(Array.from({length:c},()=>({sa:'',sb:'',pw:''})))}return rounds}
+function start(){S.started=true;S.league=[];S.ko=[];if(S.fmt==='league')S.league=genLeague(shuffle(S.players));else S.ko=genKO(S.players);R()}
+function reset(){S.started=false;S.league=[];S.ko=[];R()}
+function num(v){return v===''?'':Math.max(0,parseInt(v)||0)}
+function setL(i,f,v){S.league[i][f]=num(v);R()}
+function setK(r,i,f,v){S.ko[r][i][f]=f==='pw'?v:num(v);if(f!=='pw')S.ko[r][i].pw='';R()}
+function table(){const t={};S.players.forEach(p=>t[p]={p,P:0,W:0,D:0,L:0,GF:0,GA:0,Pts:0});
+S.league.forEach(m=>{if(m.sa===''||m.sb==='')return;const a=t[m.a],b=t[m.b];a.P++;b.P++;a.GF+=m.sa;a.GA+=m.sb;b.GF+=m.sb;b.GA+=m.sa;
+if(m.sa>m.sb){a.W++;b.L++;a.Pts+=3}else if(m.sa<m.sb){b.W++;a.L++;b.Pts+=3}else{a.D++;b.D++;a.Pts++;b.Pts++}});
+return Object.values(t).sort((x,y)=>y.Pts-x.Pts||(y.GF-y.GA)-(x.GF-x.GA)||y.GF-x.GF||x.p.localeCompare(y.p))}
+function teams(r,i){if(r===0){const m=S.ko[0][i];return[m.a,m.b]}return[win(r-1,2*i),win(r-1,2*i+1)]}
+function win(r,i){const[a,b]=teams(r,i),m=S.ko[r][i];
+if(a==='BYE'&&b==='BYE')return'BYE';if(a==='BYE')return b;if(b==='BYE')return a;
+if(!a||!b||a==='BYE'||m.sa===''||m.sb==='')return null;
+if(m.sa>m.sb)return a;if(m.sb>m.sa)return b;return m.pw==='a'?a:m.pw==='b'?b:null}
+function rname(r,total){const k=total-1-r;return k===0?'ফাইনাল':k===1?'সেমিফাইনাল':k===2?'কোয়ার্টার ফাইনাল':'রাউন্ড '+(r+1)}
+function setup(){const n=S.players.length;let hint='';
+if(S.fmt==='league')hint=n>1?`লিগ: মোট ${n*(n-1)/2}টি ম্যাচ, ${n%2?n:n-1} রাউন্ড${n%2?' (প্রতি রাউন্ডে একজন বিশ্রামে থাকবে)':''}। পয়েন্ট: জয় ৩, ড্র ১।`:'কমপক্ষে ২ জন প্লেয়ার লাগবে।';
+else hint=n>1?`নকআউট: ${n} জনের জন্য ${size(n)}-এর ব্র্যাকেট${size(n)-n?`, ${size(n)-n} জন সরাসরি পরের রাউন্ডে (বাই)`:''}।`:'কমপক্ষে ২ জন প্লেয়ার লাগবে।';
+return`<h1>🏆 টুর্নামেন্ট ম্যানেজার</h1>
+<div class="card"><h2>প্লেয়ার যোগ করুন</h2><div class="row"><input id="nm" type="text" maxlength="20" placeholder="প্লেয়ারের নাম" onkeydown="if(event.key==='Enter')add()"><button class="pri" onclick="add()">যোগ</button></div>
+<div class="chips">${S.players.map((p,i)=>`<span class="chip">${esc(p)}<b onclick="del(${i})">×</b></span>`).join('')}</div><p class="mu">মোট ${n} জন প্লেয়ার</p></div>
+<div class="card"><h2>ফরম্যাট</h2><div class="seg"><button class="${S.fmt==='league'?'on':''}" onclick="setFmt('league')">লিগ</button><button class="${S.fmt==='ko'?'on':''}" onclick="setFmt('ko')">নকআউট</button></div><p class="mu">${hint}</p></div>
+<button class="pri big" onclick="start()" ${n<2?'disabled':''}>টুর্নামেন্ট শুরু করুন</button>`}
+function si(v,fn){return`<input type="number" min="0" inputmode="numeric" value="${v}" onchange="${fn}">`}
+function playL(){const t=table(),all=S.league.every(m=>m.sa!==''&&m.sb!=='');
+const rs=[...new Set(S.league.map(m=>m.r))];
+let h=all&&t.length?`<div class="champ">🏆 চ্যাম্পিয়ন: ${esc(t[0].p)}</div>`:'';
+h+=`<div class="card"><h2>পয়েন্ট টেবিল</h2><div class="tw"><table><tr><th class="n">#  প্লেয়ার</th><th>খে</th><th>জ</th><th>ড্র</th><th>হা</th><th>গোল</th><th>GD</th><th>পয়েন্ট</th></tr>
+${t.map((x,i)=>`<tr class="${i===0&&x.P?'first':''}"><td class="n">${i+1}. ${esc(x.p)}</td><td>${x.P}</td><td>${x.W}</td><td>${x.D}</td><td>${x.L}</td><td>${x.GF}:${x.GA}</td><td>${x.GF-x.GA}</td><td><b>${x.Pts}</b></td></tr>`).join('')}</table></div></div>
+<div class="card"><h2>ম্যাচ ও রেজাল্ট</h2>`;
+rs.forEach(r=>{const ms=S.league.map((m,i)=>[m,i]).filter(x=>x[0].r===r);const pl=new Set();ms.forEach(([m])=>{pl.add(m.a);pl.add(m.b)});const rest=S.players.filter(p=>!pl.has(p));
+h+=`<div class="rd">রাউন্ড ${r}</div>`+ms.map(([m,i])=>`<div class="m"><div class="a">${esc(m.a)}</div><div class="sc">${si(m.sa,`setL(${i},'sa',this.value)`)}–${si(m.sb,`setL(${i},'sb',this.value)`)}</div><div class="b">${esc(m.b)}</div></div>`).join('')+(rest.length?`<div class="rest">বিশ্রামে: ${rest.map(esc).join(', ')}</div>`:'')});
+return h+'</div>'}
+function playK(){const R_=S.ko.length;const fw=win(R_-1,0);
+let h=fw&&fw!=='BYE'?`<div class="champ">🏆 চ্যাম্পিয়ন: ${esc(fw)}</div>`:'';
+S.ko.forEach((round,r)=>{h+=`<div class="card"><h2>${rname(r,R_)}</h2>`+round.map((m,i)=>{const[a,b]=teams(r,i),w=win(r,i);
+const nm=x=>x==null?'<span class="mu">—</span>':x==='BYE'?'BYE':esc(x);
+if(a==='BYE'||b==='BYE')return`<div class="m"><div class="bye">${a==='BYE'?nm(b):nm(a)} — সরাসরি পরের রাউন্ডে (বাই)</div></div>`;
+const ok=a&&b,tie=ok&&m.sa!==''&&m.sb!==''&&m.sa===m.sb;
+return`<div class="m"><div class="a">${w===a&&a?`<span class="w">${esc(a)}</span>`:nm(a)}</div><div class="sc">${ok?si(m.sa,`setK(${r},${i},'sa',this.value)`)+'–'+si(m.sb,`setK(${r},${i},'sb',this.value)`):'vs'}</div><div class="b">${w===b&&b?`<span class="w">${esc(b)}</span>`:nm(b)}</div>
+${tie?`<div class="pen">ড্র! পেনাল্টি/এক্সট্রা টাইমে বিজয়ী: <button class="${m.pw==='a'?'on':''}" onclick="setK(${r},${i},'pw','a');">${esc(a)}</button><button class="${m.pw==='b'?'on':''}" onclick="setK(${r},${i},'pw','b');">${esc(b)}</button></div>`:''}</div>`}).join('')+'</div>'});
+return h}
+function play(){return`<div class="top"><h1>${S.fmt==='league'?'লিগ':'নকআউট'} · ${S.players.length} জন</h1><button onclick="reset()">নতুন টুর্নামেন্ট</button></div>`+(S.fmt==='league'?playL():playK())}
+function R(){save();$('#app').innerHTML=S.started?play():setup()}
+R();
+</script></body></html>
